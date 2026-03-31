@@ -1,3 +1,7 @@
+# Virtual environment
+venv/
+.venv/          # thêm cái này nữa cho an toàn (nhiều người dùng .venv)
+
 # Python cache
 __pycache__/
 *.pyc
