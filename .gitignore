@@ -1,0 +1,21 @@
+# Virtual environment
+venv/
+.venv/          # thêm cái này nữa cho an toàn (nhiều người dùng .venv)
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# File dữ liệu lớn hoặc tạm
+*.pkl
+*.pickle
+
+# File bí mật
+.env
+
+# Các thứ khác thường ignore
+.DS_Store
+.vscode/
+.idea/
