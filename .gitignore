@@ -9,7 +9,6 @@ __pycache__/
 *.pyd
 
 # File dữ liệu lớn hoặc tạm
-*.pkl
 *.pickle
 
 # File bí mật
