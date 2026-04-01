@@ -1,4 +1,75 @@
 TRANSLATIONS = {
+    "EN": {
+        "page_title": "T-Bank | AI Real Estate Valuation",
+        "main_title": "🏠 T-Bank AI Real Estate Valuation",
+        "sub_title": "Smart property valuation · Powered by XGBoost AI",
+        "menu": "📌 Menu",
+        "sale_data": "Sale properties",
+        "rental_data": "Rental properties",
+
+        "page_valuation": "🏠 Valuation",
+        "page_compare": "🔍 Compare",
+        "page_market": "📊 Market",
+        "page_about": "ℹ️ About",
+
+        "transaction_type": "Transaction type",
+        "buy_sell": "🏷️ Buy / Sell",
+        "rent": "🏠 Rent",
+        "input_title": "📋 Enter property details",
+        "area": "📐 Area (m²)",
+        "bedrooms": "🛏️ Bedrooms",
+        "bathrooms": "🚿 Bathrooms",
+        "city": "🏙️ Province / City",
+        "district": "📍 District",
+        "btn_predict": "🔮 Estimate now",
+        "predicting": "🤖 AI is analyzing...",
+        "done": "✅ Valuation complete!",
+        "price_low": "💰 Lowest price",
+        "price_est": "🎯 Estimated price",
+        "price_high": "💰 Highest price",
+        "price_per_m2": "📐 Price/m²",
+        "similar_title": "### 🔍 Similar properties",
+        "no_similar": "No similar properties found in this area.",
+        "col_district": "District",
+        "col_city": "City",
+        "col_area": "Area (m²)",
+        "col_bed": "Bedrooms",
+        "col_bath": "Bathrooms",
+        "col_price": "Price (million VND)",
+        "col_price_m2": "Price/m²",
+        "unit_ty": "billion VND",
+        "unit_trieu": "million VND",
+        "unit_thang": "million VND/month",
+
+        "compare_title": "🔍 Compare properties by area",
+        "select_city": "Select city",
+        "num_display": "Number of properties",
+
+        "market_title": "📊 Market analysis",
+        "tab_sale": "🏷️ For sale",
+        "tab_rental": "🏠 For rent",
+        "chart_top_cities": "Top 10 cities",
+        "chart_avg_price": "Average price by city",
+        "chart_scatter": "Area vs Price",
+        "data_note": "📌 Data collected from Vietnamese real estate market. Updated: 2024.",
+
+        "about_title": "ℹ️ About T-Bank Valuation",
+        "about_body": """
+**T-Bank AI Real Estate Valuation** is an automated property valuation application
+using artificial intelligence for the Vietnamese real estate market.
+
+### 🤖 Technology
+- **ML Model**: XGBoost (R² ~0.69)
+- **Data**: 34,000+ sale · 14,000+ rental properties
+- **Framework**: Streamlit + Python
+
+### 👤 Information
+- 🎓 Student: Pham Thanh
+- 🏫 University: VAMK - University of Applied Sciences
+- 📅 Year: 2026
+        """,
+    },
+
     "VI": {
         "page_title": "T-Bank | Định giá BĐS bằng AI",
         "main_title": "🏠 T-Bank AI Real Estate Valuation",
@@ -75,76 +146,6 @@ sử dụng trí tuệ nhân tạo cho thị trường Việt Nam.
         """,
     },
 
-    "EN": {
-        "page_title": "T-Bank | AI Real Estate Valuation",
-        "main_title": "🏠 T-Bank AI Real Estate Valuation",
-        "sub_title": "Smart property valuation · Powered by XGBoost AI",
-        "menu": "📌 Menu",
-        "sale_data": "Sale properties",
-        "rental_data": "Rental properties",
-
-        "page_valuation": "🏠 Valuation",
-        "page_compare": "🔍 Compare",
-        "page_market": "📊 Market",
-        "page_about": "ℹ️ About",
-
-        "transaction_type": "Transaction type",
-        "buy_sell": "🏷️ Buy / Sell",
-        "rent": "🏠 Rent",
-        "input_title": "📋 Enter property details",
-        "area": "📐 Area (m²)",
-        "bedrooms": "🛏️ Bedrooms",
-        "bathrooms": "🚿 Bathrooms",
-        "city": "🏙️ Province / City",
-        "district": "📍 District",
-        "btn_predict": "🔮 Estimate now",
-        "predicting": "🤖 AI is analyzing...",
-        "done": "✅ Valuation complete!",
-        "price_low": "💰 Lowest price",
-        "price_est": "🎯 Estimated price",
-        "price_high": "💰 Highest price",
-        "price_per_m2": "📐 Price/m²",
-        "similar_title": "### 🔍 Similar properties",
-        "no_similar": "No similar properties found in this area.",
-        "col_district": "District",
-        "col_city": "City",
-        "col_area": "Area (m²)",
-        "col_bed": "Bedrooms",
-        "col_bath": "Bathrooms",
-        "col_price": "Price (million VND)",
-        "col_price_m2": "Price/m²",
-        "unit_ty": "billion VND",
-        "unit_trieu": "million VND",
-        "unit_thang": "million VND/month",
-
-        "compare_title": "🔍 Compare properties by area",
-        "select_city": "Select city",
-        "num_display": "Number of properties",
-
-        "market_title": "📊 Market analysis",
-        "tab_sale": "🏷️ For sale",
-        "tab_rental": "🏠 For rent",
-        "chart_top_cities": "Top 10 cities",
-        "chart_avg_price": "Average price by city",
-        "chart_scatter": "Area vs Price",
-        "data_note": "📌 Data collected from Vietnamese real estate market. Updated: 2024.",
-
-        "about_title": "ℹ️ About T-Bank Valuation",
-        "about_body": """
-**T-Bank AI Real Estate Valuation** is an automated property valuation application
-using artificial intelligence for the Vietnamese real estate market.
-
-### 🤖 Technology
-- **ML Model**: XGBoost (R² ~0.69)
-- **Data**: 34,000+ sale · 14,000+ rental properties
-- **Framework**: Streamlit + Python
-
-### 👤 Information
-- 🎓 Student: Pham Thanh
-- 🏫 University: VAMK - University of Applied Sciences
-- 📅 Year: 2026
-        """,
-    },
 
     "FI": {
         "page_title": "T-Bank | AI Kiinteistöarviointi",
@@ -290,5 +291,4 @@ som använder artificiell intelligens för den vietnamesiska fastighetsmarknaden
 }
 
 def t(lang, key):
-    """Lấy text theo ngôn ngữ"""
-    return TRANSLATIONS.get(lang, TRANSLATIONS["VI"]).get(key, key)
+    return TRANSLATIONS.get(lang, TRANSLATIONS["EN"]).get(key, key) 

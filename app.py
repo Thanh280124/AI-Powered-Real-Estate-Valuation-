@@ -32,8 +32,9 @@ all_cities_rental = sorted(df_rental["city"].dropna().unique().tolist())
 
 with st.sidebar:
     st.title("🏠 T-Bank Valuation")
+    st.image("images/logo.png", width=1000)
     st.markdown("---")
-    lang = st.radio("🌐 Language", ["VI", "EN", "FI", "SV"])
+    lang = st.segmented_control("🌐 Language", ["EN", "VI", "FI", "SV"])
     st.session_state["lang"] = lang
     st.markdown("---")
     page = st.selectbox(t(lang, "menu"), [
