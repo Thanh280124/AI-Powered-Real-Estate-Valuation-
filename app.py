@@ -133,23 +133,23 @@ if page == t(lang, "page_valuation"):
 
         # ===== CHATBOX =====
         st.markdown("---")
-        st.markdown("### 💬 Hỏi chuyên gia AI")
+        st.markdown("### 💬 Ask the AI Expert")
 
         if "messages" not in st.session_state:
             st.session_state["messages"] = []
 
-        context = get_context_message(r, lang)
+        context = get_context_message(r, "EN")
         system_messages = [
-            {"role": "system", "content": get_system_prompt(lang)},
+            {"role": "system", "content": get_system_prompt("EN")},
             {"role": "user", "content": context},
-            {"role": "assistant", "content": "Tôi đã nắm đầy đủ thông tin BĐS này. Bạn muốn hỏi gì?"},
+            {"role": "assistant", "content": "I have the property details. What would you like to know?"},
         ]
 
         if st.button("🔄 Reset chat"):
             st.session_state["messages"] = []
             st.rerun()
 
-        st.markdown("**💡 Gợi ý:**")
+        st.markdown("**💡 Suggestions Questions:**")
         col_q1, col_q2, col_q3 = st.columns(3)
         quick_questions = {
             "VI": ["Giá này có hợp lý không?", "Nên mua không?", "Khu vực này có tiềm năng không?"],
@@ -157,11 +157,11 @@ if page == t(lang, "page_valuation"):
             "FI": ["Onko hinta kohtuullinen?", "Kannattaako ostaa?", "Onko alue lupaava?"],
             "SV": ["Är priset rimligt?", "Ska jag köpa?", "Är området lovande?"]
         }
-        questions = quick_questions.get(lang, quick_questions["VI"])
+        questions = quick_questions.get(lang, quick_questions["EN"])
         for col, q in zip([col_q1, col_q2, col_q3], questions):
             if col.button(q, key=f"q_{q}"):
                 st.session_state["messages"].append({"role": "user", "content": q})
-                with st.spinner("🤖 Đang phân tích..."):
+                with st.spinner("🤖 Analyzing..."):
                     reply = chat_with_advisor(system_messages + st.session_state["messages"], lang)
                 st.session_state["messages"].append({"role": "assistant", "content": reply})
                 st.rerun()
@@ -170,10 +170,10 @@ if page == t(lang, "page_valuation"):
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-        if user_input := st.chat_input("Hỏi gì đó về BĐS này...", key="chat_main"):
+        if user_input := st.chat_input("Ask a question about the property...", key="chat_main"):
             st.session_state["messages"].append({"role": "user", "content": user_input})
             with st.chat_message("assistant"):
-                with st.spinner("🤖 Đang phân tích..."):
+                with st.spinner("🤖 Analyzing..."):
                     reply = chat_with_advisor(system_messages + st.session_state["messages"], lang)
                 st.write(reply)
             st.session_state["messages"].append({"role": "assistant", "content": reply})

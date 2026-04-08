@@ -4,7 +4,7 @@ import streamlit as st
 def get_groq_client():
     return Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-def get_system_prompt(lang="VI"):
+def get_system_prompt(lang="EN"):
     prompts = {
         "VI": """Bạn là chuyên gia tư vấn bất động sản Việt Nam của T-Bank.
 Nhiệm vụ: Tư vấn người dùng dựa trên kết quả định giá AI.
@@ -30,10 +30,10 @@ Uppgift: Ge råd baserat på AI-värderingsresultat.
 Stil: Vänlig, kortfattad, ge tydliga åsikter.
 Svara bara på fastighetsfrågor. Svara på svenska."""
     }
-    return prompts.get(lang, prompts["VI"])
+    return prompts.get(lang, prompts["EN"])
 
 
-def get_context_message(r: dict, lang="VI") -> str:
+def get_context_message(r: dict, lang="EN") -> str:
     predicted = r.get("predicted", 0)
     low = r.get("low", 0)
     high = r.get("high", 0)
@@ -83,7 +83,7 @@ When asked "should I buy" give specific feedback on price, location and area pot
     return templates.get(lang, templates["VI"])
 
 
-def chat_with_advisor(messages: list, lang="VI") -> str:
+def chat_with_advisor(messages: list, lang="EN") -> str:
     try:
         client = get_groq_client()
         response = client.chat.completions.create(
