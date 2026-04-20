@@ -2,103 +2,159 @@ import pandas as pd
 import numpy as np
 import re
 
-def parse_price_sale(price_str):
-    if pd.isna(price_str):
+def parse_price(price_val):
+    """Convert price to million VND"""
+    if pd.isna(price_val):
         return np.nan
-    price_str = str(price_str).strip().lower()
-    price_str = price_str.replace(".", "").replace(",", ".")
     try:
-        if "tỷ" in price_str:
-            num = float(re.sub(r"[^\d.]", "", price_str))
-            return num * 1000
-        elif "triệu" in price_str:
-            num = float(re.sub(r"[^\d.]", "", price_str))
-            return num
+        val = float(price_val)
+        return val / 1_000_000  
+    except:
+        return np.nan
+
+def parse_area(area_val):
+    """Convert area to float m²"""
+    if pd.isna(area_val):
+        return np.nan
+    try:
+        return float(area_val)
+    except:
+        return np.nan
+
+def load_new_data(filepath="data/vietnam_real_estate_sampled.csv"):
+    """Load new dataset from Tinix 2025"""
+    df = pd.read_csv(filepath, low_memory=False)
+    
+    # Parse price and area
+    df["price_million"] = df["price"].apply(parse_price)
+    df["area_m2"] = df["area"].apply(parse_area)
+    
+    # Rename columns to English for consistency
+    df = df.rename(columns={
+        "province_name": "city",
+        "district_name": "district",
+        "ward_name": "ward",
+        "bedroom_count": "bedrooms_num",
+        "bathroom_count": "bathrooms_num",
+        "floor_count": "floors",
+        "property_type_name": "property_type",
+        "house_direction": "direction",
+        "frontage_width": "frontage_width",
+        "road_width": "road_width",
+    })
+    
+    # Convert to numeric
+    numeric_cols = ["bedrooms_num", "bathrooms_num", "floors", 
+                    "frontage_width", "road_width", "house_depth"]
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    
+    return df
+
+
+def clean_new_data(df, listing_type="sale"):
+    """Clean data based on listing type"""
+    df = df.copy()
+    
+    # Filter by listing type
+    if "listing_type" in df.columns:
+        if listing_type == "sale":
+            df = df[df["listing_type"].str.contains("sale|bán", case=False, na=False)]
         else:
-            return np.nan
-    except:
-        return np.nan
-
-def parse_price_rental(price_str):
-    if pd.isna(price_str):
-        return np.nan
-    price_str = str(price_str).strip().lower()
-    price_str = price_str.replace(".", "").replace(",", ".")
-    try:
-        num = float(re.sub(r"[^\d.]", "", price_str))
-        return num
-    except:
-        return np.nan
-
-def parse_area(area_str):
-    if pd.isna(area_str):
-        return np.nan
-    area_str = str(area_str).strip()
-    area_str = area_str.replace(".", "").replace(",", ".")
-    try:
-        num = float(re.sub(r"[^\d.]", "", area_str))
-        return num
-    except:
-        return np.nan
-
-def parse_address(address_str):
-    if pd.isna(address_str):
-        return "Không rõ", "Không rõ"
-    cleaned = str(address_str).replace("·", "").replace("\n", "").strip()
-    parts = [p.strip() for p in cleaned.split(",") if p.strip()]
-    if len(parts) >= 2:
-        return parts[0], parts[1]
-    elif len(parts) == 1:
-        return parts[0], "Không rõ"
-    return "Không rõ", "Không rõ"
-
-def load_sale_data(filepath="data/sale_real_estate.csv"):
-    df = pd.read_csv(filepath)
-    df["price_million"] = df["price"].apply(parse_price_sale)
-    df["area_m2"] = df["area"].apply(parse_area)
-    df[["district", "city"]] = df["address"].apply(
-        lambda x: pd.Series(parse_address(x))
-    )
-    df["bedrooms_num"] = pd.to_numeric(df["bedrooms_num"], errors="coerce")
-    df["bathrooms_num"] = pd.to_numeric(df["bathrooms_num"], errors="coerce")
-    df["type"] = "sale"
-    return df
-
-def load_rental_data(filepath="data/rental_real_estate.csv"):
-    df = pd.read_csv(filepath)
-    df["price_million"] = df["price"].apply(parse_price_rental)
-    df["area_m2"] = df["area"].apply(parse_area)
-    df[["district", "city"]] = df["address"].apply(
-        lambda x: pd.Series(parse_address(x))
-    )
-    df["bedrooms_num"] = pd.to_numeric(df["bedrooms_num"], errors="coerce")
-    df["bathrooms_num"] = pd.to_numeric(df["bathrooms_num"], errors="coerce")
-    df["type"] = "rental"
-    return df
-
-def clean_sale_data(df):
-    df = df.copy()
+            df = df[df["listing_type"].str.contains("rent|thuê", case=False, na=False)]
+    
+    # Drop rows with missing price or area
     df = df.dropna(subset=["price_million", "area_m2"])
-    df = df[df["price_million"] > 100]
-    df = df[df["price_million"] < 200000]
-    df = df[df["area_m2"] >= 10]
-    df = df[df["area_m2"] <= 2000]
-    df = df.drop_duplicates(subset=["product_id"])
+    
+    # Reasonable price filter
+    if listing_type == "sale":
+        df = df[(df["price_million"] > 100) & (df["price_million"] < 500_000)]
+    else:
+        df = df[(df["price_million"] > 1) & (df["price_million"] < 5_000)]
+    
+    # Area filter
+    df = df[(df["area_m2"] >= 10) & (df["area_m2"] <= 5000)]
+    
+    # Remove duplicates
+    df = df.drop_duplicates()
+    
+    # Calculate price per m²
     df["price_per_m2"] = df["price_million"] / df["area_m2"]
+    
     return df.reset_index(drop=True)
 
-def clean_rental_data(df):
-    df = df.copy()
-    df = df.dropna(subset=["price_million", "area_m2"])
-    df = df[df["price_million"] > 1]
-    df = df[df["price_million"] < 5000]
-    df = df[df["area_m2"] >= 10]
-    df = df[df["area_m2"] <= 2000]
-    df = df.drop_duplicates(subset=["product_id"])
-    df["price_per_m2"] = df["price_million"] / df["area_m2"]
-    return df.reset_index(drop=True)
+
+def load_and_clean_data(filepath="data/vietnam_real_estate_sampled.csv"):
+    """Main function to load and clean data"""
+    df = load_new_data(filepath)
+    
+    print("⏳ Extracting features from description...")
+    combined_text = df["description"].fillna("") + " " + df["name"].fillna("")
+    
+    df["street_type"] = combined_text.apply(extract_street_type)
+    df["legal_status"] = combined_text.apply(extract_legal)
+    df["condition"] = combined_text.apply(extract_condition)
+    
+    print(f"✅ street_type: {df['street_type'].value_counts().to_dict()}")
+    print(f"✅ legal_status: {df['legal_status'].value_counts().to_dict()}")
+    
+    # Filter main property types for sale
+    sale_types = ["Nhà", "Biệt thự/Nhà liền kề", "Căn hộ chung cư", "Shophouse", "Đất"]
+    df_sale = df[df["property_type"].isin(sale_types)].copy()
+    df_sale = clean_new_data(df_sale, "sale")
+    
+    return df_sale
+
+
+def extract_street_type(text):
+    """Extract street type from text"""
+    if pd.isna(text):
+        return "unknown"
+    text = str(text).lower()
+    
+    if any(w in text for w in ["mặt phố", "mặt tiền", "mặt đường", "mt "]):
+        return "main_road"
+    elif any(w in text for w in ["hẻm", "ngõ", "ngách", "kiệt"]):
+        return "alley"
+    else:
+        return "unknown"
+
+
+def extract_legal(text):
+    """Extract legal status from text"""
+    if pd.isna(text):
+        return "unknown"
+    text = str(text).lower()
+    
+    if "sổ đỏ" in text:
+        return "red_book"
+    elif "sổ hồng" in text:
+        return "pink_book"
+    elif "sổ chung" in text:
+        return "shared_book"
+    else:
+        return "unknown"
+
+
+def extract_condition(text):
+    """Extract house condition"""
+    if pd.isna(text):
+        return "unknown"
+    text = str(text).lower()
+    
+    if any(w in text for w in ["mới xây", "mới hoàn", "brand new"]):
+        return "new"
+    elif any(w in text for w in ["cần sửa", "xuống cấp", "cũ"]):
+        return "old"
+    elif any(w in text for w in ["nội thất", "đầy đủ nội thất"]):
+        return "furnished"
+    else:
+        return "unknown"
+
 
 def get_stats(df):
+    """Return basic statistics"""
     return {
         "total": len(df),
         "avg_price": df["price_million"].mean(),

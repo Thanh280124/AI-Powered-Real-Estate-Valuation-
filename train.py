@@ -1,24 +1,38 @@
 import sys
 sys.path.append(".")
-from utils.data_processor import (
-    load_sale_data, load_rental_data,
-    clean_sale_data, clean_rental_data
-)
+
+from utils.data_processor import load_and_clean_data
 from utils.model_trainer import run_training_pipeline
 
-# ===== TRAIN MODEL BÁN =====
-print("\n🏠 TRAIN MODEL BÁN BĐS")
-df_sale = clean_sale_data(load_sale_data())
-sale_results, sale_best = run_training_pipeline(df_sale, model_type="sale")
+# Load and clean data
+df = load_and_clean_data("data/vietnam_real_estate_sampled.csv")
 
-# ===== TRAIN MODEL CHO THUÊ =====
-print("\n🏠 TRAIN MODEL CHO THUÊ BĐS")
-df_rental = clean_rental_data(load_rental_data())
-rental_results, rental_best = run_training_pipeline(df_rental, model_type="rental")
+print(f"✅ Total records loaded: {len(df):,}")
+print("Property types in data:")
+print(df["property_type"].value_counts())
 
-# ===== TỔNG KẾT =====
-print("\n" + "="*50)
-print("🎉 HOÀN THÀNH TRAINING!")
-print(f"   Sale model tốt nhất   : {sale_best}")
-print(f"   Rental model tốt nhất : {rental_best}")
-print("="*50)
+# ====================== TRAINING SEPARATE MODELS ======================
+property_mapping = {
+    "Nhà": "house",
+    "Biệt thự/Nhà liền kề": "villa",
+    "Căn hộ chung cư": "apartment",
+    "Shophouse": "shophouse",
+    "Đất": "land"
+}
+
+print("\n🚀 Starting training separate models...")
+
+for viet_name, eng_name in property_mapping.items():
+    df_sub = df[df["property_type"] == viet_name].copy()
+    
+    if len(df_sub) < 1000:
+        print(f"⚠️ Skipping {viet_name} → only {len(df_sub):,} records")
+        continue
+        
+    print(f"\n🏠 Training {viet_name} → model name: {eng_name} ({len(df_sub):,} records)")
+    
+    run_training_pipeline(df_sub, model_type=eng_name)
+
+# ====================== TRAINING GENERAL MODEL ======================
+print("\n🏠 Training general model for ALL property types")
+run_training_pipeline(df, model_type="sale_all")
