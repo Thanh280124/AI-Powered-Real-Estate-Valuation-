@@ -67,12 +67,11 @@ for tab, df, label in [
             st.plotly_chart(fig1, width="stretch")   # ← đã sửa
 
         with col_b:
-            # Top 10 tỉnh/thành - ĐÃ SỬA LỖI DUPLICATE 'count'
             top_cities = (
                 df["city"]
                 .value_counts()
                 .head(10)
-                .reset_index(name="số_lượng")      # Cách này an toàn nhất
+                .reset_index(name="số_lượng")     
                 .rename(columns={"city": "city"})
             )
 
