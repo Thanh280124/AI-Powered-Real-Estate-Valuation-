@@ -26,6 +26,19 @@ def load_data():
 df_sale = load_data()
 all_cities_sale = sorted(df_sale["city"].dropna().unique().tolist())
 
+# Direction map: English display → Vietnamese for model
+DIRECTION_MAP = {
+    "unknown": "unknown",
+    "East": "Đông",
+    "West": "Tây",
+    "South": "Nam",
+    "North": "Bắc",
+    "Southeast": "Đông Nam",
+    "Northeast": "Đông Bắc",
+    "Southwest": "Tây Nam",
+    "Northwest": "Tây Bắc",
+}
+
 with st.sidebar:
     st.title("🏠 T-Bank Valuation")
     st.markdown("---")
@@ -57,36 +70,58 @@ if page == t(lang, "page_valuation"):
         area = st.number_input(t(lang, "area"), min_value=10, max_value=2000, value=60)
         bedrooms = st.selectbox(t(lang, "bedrooms"), [0, 1, 2, 3, 4, 5, 6])
         bathrooms = st.selectbox(t(lang, "bathrooms"), [0, 1, 2, 3, 4, 5])
-        floors = st.selectbox("🏢 Số tầng / Floors", [1, 2, 3, 4, 5, 6, 7, 8])
-        frontage_width = st.number_input("📏 Mặt tiền (m) / Frontage (m)",
-                                          min_value=1.0, max_value=50.0,
-                                          value=4.0, step=0.5)
+        floors = st.selectbox("🏢 Floors", [1, 2, 3, 4, 5, 6, 7, 8])
+        frontage_width = st.number_input(
+            "📏 Frontage Width (m)",
+            min_value=1.0, max_value=50.0, value=4.0, step=0.5
+        )
+
     with col2:
         city = st.selectbox(t(lang, "city"), all_cities_sale)
         districts_in_city = sorted(
             df_sale[df_sale["city"] == city]["district"].dropna().unique().tolist()
         )
         district = st.selectbox(t(lang, "district"), districts_in_city)
-        property_type = st.selectbox("🏘️ Loại BĐS / Property Type", [
+
+        property_type = st.selectbox("🏘️ Property Type", [
             "Nhà", "Căn hộ chung cư", "Biệt thự/Nhà liền kề", "Shophouse", "Đất"
-        ])
-        direction = st.selectbox("🧭 Hướng / Direction", [
-            "unknown", "Đông", "Tây", "Nam", "Bắc",
-            "Đông Nam", "Đông Bắc", "Tây Nam", "Tây Bắc"
-        ])
-        street_type = st.selectbox("🛣️ Loại đường / Street Type", [
+        ], format_func=lambda x: {
+            "Nhà": "House (Nhà)",
+            "Căn hộ chung cư": "Apartment (Căn hộ chung cư)",
+            "Biệt thự/Nhà liền kề": "Villa / Townhouse (Biệt thự)",
+            "Shophouse": "Shophouse",
+            "Đất": "Land (Đất)",
+        }.get(x, x))
+
+        direction = st.selectbox("🧭 House Direction", [
+            "unknown", "East", "West", "South", "North",
+            "Southeast", "Northeast", "Southwest", "Northwest"
+        ], format_func=lambda x: {
+            "unknown": "Unknown",
+            "East": "East (Đông)",
+            "West": "West (Tây)",
+            "South": "South (Nam)",
+            "North": "North (Bắc)",
+            "Southeast": "Southeast (Đông Nam)",
+            "Northeast": "Northeast (Đông Bắc)",
+            "Southwest": "Southwest (Tây Nam)",
+            "Northwest": "Northwest (Tây Bắc)",
+        }.get(x, x))
+
+        street_type = st.selectbox("🛣️ Street Type", [
             "unknown", "main_road", "alley"
         ], format_func=lambda x: {
-            "unknown": "Không rõ / Unknown",
-            "main_road": "Mặt phố / Main Road",
-            "alley": "Ngõ / Alley"
+            "unknown": "Unknown",
+            "main_road": "Main Road (Mặt phố / Mặt tiền)",
+            "alley": "Alley (Ngõ / Hẻm)",
         }.get(x, x))
-        legal_status = st.selectbox("📄 Pháp lý / Legal", [
+
+        legal_status = st.selectbox("📄 Legal Status", [
             "unknown", "red_book", "pink_book"
         ], format_func=lambda x: {
-            "unknown": "Không rõ / Unknown",
-            "red_book": "Sổ đỏ / Red Book",
-            "pink_book": "Sổ hồng / Pink Book"
+            "unknown": "Unknown",
+            "red_book": "Red Book (Sổ đỏ)",
+            "pink_book": "Pink Book (Sổ hồng)",
         }.get(x, x))
 
     st.markdown("---")
@@ -94,12 +129,17 @@ if page == t(lang, "page_valuation"):
     if st.button(t(lang, "btn_predict")):
         with st.spinner(t(lang, "predicting")):
             try:
+                # Map direction English → Vietnamese for model
+                direction_vi = DIRECTION_MAP.get(direction, "unknown")
+
                 predicted, low, high = predict_price(
                     area=area, bedrooms=bedrooms, bathrooms=bathrooms,
                     district=district, city=city,
                     property_type=property_type, floors=floors,
-                    frontage_width=frontage_width, direction=direction,
-                    street_type=street_type, legal_status=legal_status,
+                    frontage_width=frontage_width,
+                    direction=direction_vi,
+                    street_type=street_type,
+                    legal_status=legal_status,
                 )
                 st.session_state["result"] = {
                     "predicted": predicted, "low": low, "high": high,
@@ -108,7 +148,10 @@ if page == t(lang, "page_valuation"):
                     "property_type": property_type,
                     "mode": property_type,
                     "is_sale": True,
-                    "price_per_m2": predicted / area
+                    "price_per_m2": predicted / area,
+                    "direction": direction,
+                    "street_type": street_type,
+                    "legal_status": legal_status,
                 }
                 st.session_state["messages"] = []
             except Exception as e:
@@ -142,7 +185,6 @@ if page == t(lang, "page_valuation"):
             r["area"], predicted, r["property_type"]
         )
         if len(similar) > 0:
-            # Đổi tên cột đẹp
             rename_map = {
                 "property_type": "Type",
                 "district": "District",
@@ -155,14 +197,13 @@ if page == t(lang, "page_valuation"):
             }
             similar = similar.rename(columns=rename_map)
 
-            # Đổi price sang tỷ
             if "Price" in similar.columns:
                 similar["Price"] = similar["Price"].apply(
                     lambda x: f"{x/1000:.2f} tỷ" if x >= 1000 else f"{x:.0f} tr"
                 )
             if "Price/m²" in similar.columns:
                 similar["Price/m²"] = similar["Price/m²"].apply(
-                lambda x: f"{float(x):.1f} tr/m²" if not str(x).endswith("tr/m²") else x
+                    lambda x: f"{float(x):.1f} tr/m²" if not str(x).endswith("tr/m²") else x
                 )
 
             st.dataframe(similar, use_container_width=True)
@@ -230,10 +271,16 @@ elif page == t(lang, "page_compare"):
     with col2:
         top_n = st.slider(t(lang, "num_display"), 5, 50, 20)
 
-    # Thêm filter property type
     property_filter = st.multiselect(
-        "🏘️ Lọc loại BĐS / Filter Property Type",
+        "🏘️ Filter Property Type",
         ["Nhà", "Căn hộ chung cư", "Biệt thự/Nhà liền kề", "Shophouse", "Đất"],
+        format_func=lambda x: {
+            "Nhà": "House (Nhà)",
+            "Căn hộ chung cư": "Apartment (Căn hộ)",
+            "Biệt thự/Nhà liền kề": "Villa / Townhouse",
+            "Shophouse": "Shophouse",
+            "Đất": "Land (Đất)",
+        }.get(x, x),
         default=["Nhà", "Căn hộ chung cư"]
     )
 
@@ -271,7 +318,6 @@ elif page == t(lang, "page_market"):
                       color_discrete_sequence=["#e94560"])
         st.plotly_chart(fig2, use_container_width=True)
 
-    # Scatter theo property type
     fig3 = px.scatter(
         df_sale.sample(min(3000, len(df_sale))),
         x="area_m2", y="price_million",
@@ -283,7 +329,6 @@ elif page == t(lang, "page_market"):
     )
     st.plotly_chart(fig3, use_container_width=True)
 
-    # Giá TB theo loại BĐS
     type_price = (df_sale.groupby("property_type")["price_million"]
                   .median().sort_values(ascending=False).reset_index())
     fig4 = px.bar(type_price, x="property_type", y="price_million",
@@ -295,4 +340,3 @@ elif page == t(lang, "page_market"):
 elif page == t(lang, "page_about"):
     st.subheader(t(lang, "about_title"))
     st.markdown(t(lang, "about_body"))
-    
