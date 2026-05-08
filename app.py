@@ -144,7 +144,6 @@ if page == t(lang, "page_valuation"):
                     "property_age": 2010 - year_built,
                 }
                 st.session_state["messages"] = []
-                st.success(t(lang, "done"))
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
