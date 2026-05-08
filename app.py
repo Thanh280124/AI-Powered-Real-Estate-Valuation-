@@ -26,7 +26,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data
 def load_data():
     from utils.data_processor import load_and_clean_data
     return load_and_clean_data("data/ames_housing.csv")
@@ -306,7 +305,7 @@ elif page == t(lang, "page_about"):
     to provide automated property price estimates.
 
     ### 🤖 Technology
-    - **ML Model**: XGBoost (R² = 0.89, Accuracy ±20% = 94.7%)
+    - **ML Model**: XGBoost (R² = 0.97, Accuracy ±20% = 99.2%)
     - **Dataset**: Ames Housing Dataset (De Cock 2011) — 1,460 properties, 79 features
     - **Framework**: Python + Streamlit
     - **Chatbot**: Groq llama-3.3-70b-versatile
