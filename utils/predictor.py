@@ -2,36 +2,22 @@ import pickle
 import numpy as np
 import pandas as pd
 
-# Map property type → model file
-PROPERTY_MODEL_MAP = {
-    "Nhà": "house",
-    "Biệt thự/Nhà liền kề": "villa",
-    "Căn hộ chung cư": "apartment",
-    "Shophouse": "shophouse",
-    "Đất": "land",
-}
-
-def load_model(model_type="sale_all"):
+def load_model(model_type="ames"):
     filepath = f"models/{model_type}_model.pkl"
     with open(filepath, "rb") as f:
         return pickle.load(f)
 
-def predict_price(area, bedrooms, bathrooms, district, city,
-                  property_type="Nhà", floors=2, frontage_width=4,
-                  road_width=6, direction="unknown",
-                  street_type="unknown", legal_status="unknown",
-                  ward="unknown"):
-    """
-    Dự đoán giá BĐS dựa trên property type
-    Returns: (predicted, low, high) — đơn vị: triệu VNĐ
-    """
-    model_name = PROPERTY_MODEL_MAP.get(property_type, "sale_all")
-
-    try:
-        bundle = load_model(model_name)
-    except FileNotFoundError:
-        bundle = load_model("sale_all")
-
+def predict_price(
+    area_sqft, bedrooms, bathrooms, year_built,
+    overall_quality, overall_condition,
+    neighborhood, building_type, house_style,
+    has_garage, garage_cars, garage_area,
+    has_basement, basement_area,
+    has_fireplace, fireplaces,
+    has_central_air, kitchen_quality, exterior_quality,
+    total_rooms, lot_area, year_sold=2010
+):
+    bundle = load_model("ames")
     model = bundle["model"]
     encoders = bundle["encoders"]
 
@@ -40,43 +26,55 @@ def predict_price(area, bedrooms, bathrooms, district, city,
             return le.transform([val])[0]
         return 0
 
-    district_encoded  = safe_encode(encoders["le_district"],  district)
-    city_encoded      = safe_encode(encoders["le_city"],      city)
-    ward_encoded      = safe_encode(encoders["le_ward"],      ward)
-    property_encoded  = safe_encode(encoders["le_property"],  property_type)
-    direction_encoded = safe_encode(encoders["le_direction"], direction)
-    street_encoded    = safe_encode(encoders["le_street"],    street_type)
-    legal_encoded     = safe_encode(encoders["le_legal"],     legal_status)
-    condition_encoded = 0
+    # Encode categoricals
+    neighborhood_encoded = safe_encode(encoders["le_neighborhood"], neighborhood)
+    building_encoded     = safe_encode(encoders["le_building"], building_type)
+    style_encoded        = safe_encode(encoders["le_style"], house_style)
+    kitchen_encoded      = safe_encode(encoders["le_kitchen"], kitchen_quality)
+    exterior_encoded     = safe_encode(encoders["le_exterior"], exterior_quality)
 
-    district_avg = encoders["district_avg"]
-    city_avg     = encoders["city_avg"]
-    ward_avg     = encoders["ward_avg"]
+    # Neighborhood median price
+    neighborhood_avg = encoders["neighborhood_avg"]
+    neighborhood_median = neighborhood_avg.get(
+        neighborhood, neighborhood_avg.median()
+    )
 
-    district_median = district_avg.get(district, district_avg.median())
-    city_median     = city_avg.get(city, city_avg.median())
-    ward_median     = ward_avg.get(ward, ward_avg.median()) if ward_avg is not None else city_median
+    # Computed features
+    property_age         = year_sold - year_built
+    years_since_remodel  = 0  # default
+    total_bath           = bathrooms
+    total_sf             = area_sqft + basement_area
+    log_area             = np.log1p(area_sqft)
+    log_lot              = np.log1p(lot_area)
 
-    log_area = np.log1p(area)
     X = pd.DataFrame([{
-        "area_m2":              area,
-        "log_area":             log_area,
-        "bedrooms_num":         bedrooms,
-        "bathrooms_num":        bathrooms,
-        "floors":               floors,
-        "frontage_width":       frontage_width,
-        "road_width":           road_width,
-        "district_encoded":     district_encoded,
-        "city_encoded":         city_encoded,
-        "ward_encoded":         ward_encoded,
-        "property_encoded":     property_encoded,
-        "direction_encoded":    direction_encoded,
-        "street_encoded":       street_encoded,
-        "legal_encoded":        legal_encoded,
-        "condition_encoded":    condition_encoded,
-        "district_median_price": district_median,
-        "city_median_price":    city_median,
-        "ward_median_price":    ward_median,
+        "area_sqft":                area_sqft,
+        "log_area":                 log_area,
+        "total_sf":                 total_sf,
+        "log_lot":                  log_lot,
+        "basement_area_sqft":       basement_area,
+        "garage_area_sqft":         garage_area,
+        "bedrooms_num":             bedrooms,
+        "bathrooms_num":            bathrooms,
+        "total_rooms":              total_rooms,
+        "total_bath":               total_bath,
+        "fireplaces":               fireplaces,
+        "garage_cars":              garage_cars,
+        "overall_quality":          overall_quality,
+        "overall_condition":        overall_condition,
+        "kitchen_encoded":          kitchen_encoded,
+        "exterior_encoded":         exterior_encoded,
+        "year_built":               year_built,
+        "property_age":             property_age,
+        "years_since_remodel":      years_since_remodel,
+        "has_garage":               int(has_garage),
+        "has_basement":             int(has_basement),
+        "has_fireplace":            int(has_fireplace),
+        "has_central_air":          int(has_central_air),
+        "neighborhood_encoded":     neighborhood_encoded,
+        "neighborhood_median_price": neighborhood_median,
+        "building_encoded":         building_encoded,
+        "style_encoded":            style_encoded,
     }])
 
     feature_cols = encoders["feature_cols"]
@@ -90,70 +88,43 @@ def predict_price(area, bedrooms, bathrooms, district, city,
     return round(predicted, 2), round(low, 2), round(high, 2)
 
 
-def get_similar_properties(df, district, city, area, price,
-                           property_type=None, n=5):
+def get_similar_properties(df, neighborhood, area_sqft, price,
+                           year_built, overall_quality, n=5):
     filtered = df.copy()
 
-    # Lọc cùng loại BĐS
-    if property_type and "property_type" in df.columns:
-        filtered = filtered[filtered["property_type"] == property_type]
+    # Filter same neighborhood first
+    nbr_filtered = filtered[filtered["neighborhood"] == neighborhood]
+    if len(nbr_filtered) >= n:
+        filtered = nbr_filtered
 
-    # Lọc cùng thành phố TRƯỚC
-    city_filtered = filtered[filtered["city"] == city].copy()
-
-    # Lọc range giá ±40% và area ±50%
-    strict = city_filtered[
-        (city_filtered["area_m2"].between(area * 0.5, area * 1.5)) &
-        (city_filtered["price_million"].between(price * 0.6, price * 1.4))
+    # Filter by price range ±40%
+    filtered = filtered[
+        (filtered["price_usd"].between(price * 0.6, price * 1.4)) &
+        (filtered["area_sqft"].between(area_sqft * 0.5, area_sqft * 1.5))
     ]
 
-    # Nếu đủ kết quả dùng strict
-    if len(strict) >= n:
-        filtered = strict
-    elif len(city_filtered) >= n:
-        # Nới rộng range nhưng vẫn giữ cùng city
-        filtered = city_filtered[
-            city_filtered["area_m2"].between(area * 0.3, area * 1.7)
-        ]
-        if len(filtered) < n:
-            filtered = city_filtered
-    else:
-        # Fallback: cùng property type toàn quốc
-        filtered = df.copy()
-        if property_type and "property_type" in df.columns:
-            filtered = filtered[filtered["property_type"] == property_type]
-        filtered = filtered[
-            filtered["price_million"].between(price * 0.6, price * 1.4)
-        ]
+    if len(filtered) < 3:
+        filtered = df[df["area_sqft"].between(area_sqft * 0.4, area_sqft * 1.6)]
 
     if len(filtered) == 0:
         return pd.DataFrame()
 
-    # ===== SIMILARITY SCORE =====
+    # Similarity score
     score = pd.Series(0.0, index=filtered.index)
-    score += 0.35 * (abs(filtered["area_m2"] - area) / (area + 1))
-    score += 0.30 * (abs(filtered["price_million"] - price) / (price + 1))
-
-    if "bedrooms_num" in filtered.columns:
-        median_bed = filtered["bedrooms_num"].median()
-        score += 0.15 * (
-            abs(filtered["bedrooms_num"].fillna(median_bed) - median_bed)
-            / (median_bed + 1)
-        )
-
-    if "district" in filtered.columns:
-        score += 0.15 * (filtered["district"] != district).astype(float)
-
-    if "street_type" in filtered.columns:
-        score += 0.05 * (filtered["street_type"] == "unknown").astype(float)
+    score += 0.30 * abs(filtered["area_sqft"] - area_sqft) / (area_sqft + 1)
+    score += 0.25 * abs(filtered["price_usd"] - price) / (price + 1)
+    score += 0.20 * abs(filtered["overall_quality"] - overall_quality)
+    score += 0.15 * abs(filtered["year_built"] - year_built) / 100
+    score += 0.10 * (filtered["neighborhood"] != neighborhood).astype(float)
 
     filtered = filtered.copy()
     filtered["similarity_score"] = score
 
     display_cols = [
-        "property_type", "district", "city",
-        "area_m2", "bedrooms_num", "bathrooms_num",
-        "price_million", "price_per_m2"
+        "neighborhood", "building_type", "house_style",
+        "area_sqft", "bedrooms_num", "bathrooms_num",
+        "year_built", "overall_quality",
+        "price_usd", "price_per_sqft"
     ]
     display_cols = [c for c in display_cols if c in filtered.columns]
 
